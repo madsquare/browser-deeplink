@@ -183,17 +183,22 @@
         }
 
         if (isAndroid() && settings.androidDisabled) {
-            return;
+            return false;
+        }
+
+        if (settings.fallback) {
+            timeout = setTimeout(openAppStore(Date.now()), settings.delay);
+        }
+
+        if (isIOS() && (ua.match(/CriOS/) || (ua.match(/Safari/) && ua.match(/Version\/9/)))) {
+            document.location = uri;
+            return true;
         }
 
         if (isAndroid() && !ua.match(/Firefox/)) {
             var matches = uri.match(/([^:]+):\/\/(.*)$/i);  // schema://*
             uri = 'intent://' + matches[2] + '#Intent;scheme=' + matches[1];
             uri += ';package=' + settings.android.appId + ';end';
-        }
-
-        if (settings.fallback) {
-            timeout = setTimeout(openAppStore(Date.now()), settings.delay);
         }
         
         var iframe = document.createElement('iframe');
