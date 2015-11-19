@@ -7,18 +7,21 @@
  * MIT License
  */
  
+/* global define:true */
+/* global module:true */
+
+'use strict';
+
 (function (root, factory) {
     if ( typeof define === 'function' && define.amd ) {
-        define("deeplink", factory(root));
+        define('deeplink', factory(root));
     } else if ( typeof exports === 'object' ) {
         module.exports = factory(root);
     } else {
-        root["deeplink"] = factory(root);
+        root.deeplink = factory(root);
     }
-})(window || this, function(root) {
+})(window || {}, function (root) {
  
-    "use strict"
-
     /**
      * Cannot run without DOM or user-agent
      */
@@ -38,7 +41,8 @@
         fallback: true,
         delay: 1000,
         delta: 500
-    }
+    };
+    var ua = navigator.userAgent;
 
     /**
      * Merge defaults with user options
@@ -48,13 +52,13 @@
      * @returns {Object} Merged values of defaults and options
      */
     var extend = function(defaults, options) {
-        var extended = {};
-        for(var key in defaults) {
+        var extended = {}, key = null;
+        for(key in defaults) {
             extended[key] = defaults[key];
-        };
-        for(var key in options) {
+        }
+        for(key in options) {
             extended[key] = options[key];
-        };
+        }
         return extended;
     };
 
@@ -65,11 +69,11 @@
      * @returns {String} App store itms-apps:// link 
      */
     var getStoreURLiOS = function() {
-        var baseurl = "itms-apps://itunes.apple.com/app/";
+        var baseurl = 'itms-apps://itunes.apple.com/app/';
         var name = settings.iOS.appName;
         var id = settings.iOS.appId; 
-        return (id && name) ? (baseurl + name + "/id" + id + "?mt=8") : null;
-    }
+        return (id && name) ? (baseurl + name + '/id' + id + '?mt=8') : null;
+    };
 
     /**
      * Generate the app store link for Google Play
@@ -78,10 +82,10 @@
      * @returns {String} Play store https:// link
      */
     var getStoreURLAndroid = function() {
-        var baseurl = "market://details?id=";
+        var baseurl = 'market://details?id=';
         var id = settings.android.appId;
         return id ? (baseurl + id) : null;        
-    }
+    };
 
     /**
      * Get app store link, depending on the current platform
@@ -91,12 +95,12 @@
      */
     var getStoreLink = function() {
         var linkmap = {
-            "ios": settings.iOS.storeUrl || getStoreURLiOS(),
-            "android": settings.android.storeUrl || getStoreURLAndroid()
-        }
+            ios: settings.iOS.storeUrl || getStoreURLiOS(),
+            android: settings.android.storeUrl || getStoreURLAndroid()
+        };
 
         return linkmap[settings.platform];
-    }
+    };
 
     /**
      * Check if the user-agent is Android
@@ -105,8 +109,8 @@
      * @returns {Boolean} true/false
      */
     var isAndroid = function() {
-        return navigator.userAgent.match('Android');
-    }
+        return /Android/i.test(ua);
+    };
 
     /**
      * Check if the user-agent is iPad/iPhone/iPod
@@ -115,10 +119,8 @@
      * @returns {Boolean} true/false
      */
     var isIOS = function() {
-        return navigator.userAgent.match('iPad') || 
-               navigator.userAgent.match('iPhone') || 
-               navigator.userAgent.match('iPod');
-    }
+        return /iPhone|iPad|iPod/i.test(ua);
+    };
 
     /**
      * Check if the user is on mobile
@@ -128,7 +130,7 @@
      */
     var isMobile = function() {
         return isAndroid() || isIOS();
-    }
+    };
 
     /**
      * Timeout function that tries to open the app store link.
@@ -145,11 +147,11 @@
         return function() {
             var link = getStoreLink();
             var wait = settings.delay + settings.delta;
-            if (typeof link === "string" && (Date.now() - ts) < wait) {
+            if (typeof link === 'string' && (Date.now() - ts) < wait) {
                 window.location.href = link;
             }
-        }
-    }
+        };
+    };
 
     /**
      * The setup() function needs to be run before deeplinking can work,
@@ -161,9 +163,12 @@
     var setup = function(options) {
         settings = extend(defaults, options);
 
-        if (isAndroid()) settings.platform = "android";
-        if (isIOS()) settings.platform = "ios";
-    }
+        if (isAndroid()) {
+            settings.platform = 'android';
+        } else if (isIOS()) {
+            settings.platform = 'ios';
+        }
+    };
 
     /**
      * Tries to open your app URI through a hidden iframe.
@@ -181,17 +186,17 @@
             return;
         }
 
-        if (isAndroid() && !navigator.userAgent.match(/Firefox/)) {
-            var matches = uri.match(/([^:]+):\/\/(.+)$/i);
-            uri = "intent://" + matches[2] + "#Intent;scheme=" + matches[1];
-            uri += ";package=" + settings.android.appId + ";end";
+        if (isAndroid() && !ua.match(/Firefox/)) {
+            var matches = uri.match(/([^:]+):\/\/(.*)$/i);  // schema://*
+            uri = 'intent://' + matches[2] + '#Intent;scheme=' + matches[1];
+            uri += ';package=' + settings.android.appId + ';end';
         }
 
         if (settings.fallback) {
             timeout = setTimeout(openAppStore(Date.now()), settings.delay);
         }
         
-        var iframe = document.createElement("iframe");
+        var iframe = document.createElement('iframe');
         iframe.onload = function() {
             clearTimeout(timeout);
             iframe.parentNode.removeChild(iframe);
@@ -199,16 +204,16 @@
         };
 
         iframe.src = uri;
-        iframe.setAttribute("style", "display:none;");
+        iframe.setAttribute('style', 'display:none;');
         document.body.appendChild(iframe);
         
         return true;
-    }
+    };
 
     // Public API
     return {
         setup: setup,
-        open: open
+        open: open,
+        getStoreLink: getStoreLink
     };
-
 });
